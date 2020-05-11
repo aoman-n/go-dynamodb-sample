@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  dynamodb-local:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile_dynamo
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./dynamodb-data:/home/dynamodblocal/data

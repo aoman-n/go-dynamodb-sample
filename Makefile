@@ -1,0 +1,6 @@
+AWS_REGION=ap-northeast-1
+DYNAMO_ENDPOINT=http://localhost:8000
+
+.PHONY: run
+run:
+	AWS_REGION=$(AWS_REGION) DYNAMO_ENDPOINT=$(DYNAMO_ENDPOINT) go run main.go
