@@ -38,9 +38,9 @@ type DynamoOperator struct {
 	Table *dynamo.Table
 }
 
-func NewDynamoOperator() *DynamoOperator {
+func NewDynamoOperator(tableName string) *DynamoOperator {
 	db := setUpDB()
-	table := db.Table("MyFirstTable")
+	table := db.Table(tableName)
 
 	return &DynamoOperator{
 		Db:    db,
@@ -49,8 +49,10 @@ func NewDynamoOperator() *DynamoOperator {
 }
 
 var (
-	PutErrMsg = "failed to put item %v"
-	GetErrMsg = "failed to get item %v"
+	PutErrMsg    = "failed to put item %s"
+	GetErrMsg    = "failed to get item %s"
+	UpdateErrMsg = "failed to update item %s"
+	DeleteErrMsg = "failed to delete item %s"
 )
 
 // Create 項目を作成
@@ -62,13 +64,41 @@ func (d *DynamoOperator) Create(item *Item) error {
 }
 
 // Read 項目を取得
-func (d *DynamoOperator) GetByHashKey(key string) (*Item, error) {
+func (d *DynamoOperator) GetByHashKey(hashKey string, rangeKey int) (*Item, error) {
 	var result Item
-	if err := d.Table.Get("MyHashKey", key).One(&result); err != nil {
+	err := d.Table.
+		Get("MyHashKey", hashKey).
+		Range("MyRangeKey", dynamo.Equal, rangeKey).
+		One(&result)
+	if err != nil {
 		return nil, fmt.Errorf(GetErrMsg, err)
 	}
 
 	return &result, nil
+}
+
+// Update 項目を更新
+func (d *DynamoOperator) Update(item *Item) error {
+	err := d.Table.
+		Update("MyHashKey", item.MyHashKey).
+		Range("MyRangeKey", item.MyRangeKey).
+		Set("MyText", item.MyText).
+		Value(item)
+	if err != nil {
+		return fmt.Errorf(UpdateErrMsg, err)
+	}
+	return nil
+}
+
+func (d *DynamoOperator) Delete(item *Item) error {
+	err := d.Table.
+		Delete("MyHashKey", item.MyHashKey).
+		Range("MyRangeKey", item.MyRangeKey).
+		Run()
+	if err != nil {
+		return fmt.Errorf(DeleteErrMsg, err)
+	}
+	return nil
 }
 
 // Item DynamoDB格納用構造体
@@ -79,21 +109,32 @@ type Item struct {
 }
 
 func main() {
-	dynamoOperator := NewDynamoOperator()
+	dynamoOperator := NewDynamoOperator("MyFirstTable")
 
 	item := Item{
-		MyHashKey:  "MyHash2",
-		MyRangeKey: 2,
-		MyText:     "Hello, My Text2",
+		MyHashKey:  "my hash key 1",
+		MyRangeKey: 3,
+		MyText:     "text1",
 	}
 	err := dynamoOperator.Create(&item)
 	if err != nil {
 		log.Println("dynamoOperator Create error: ", err)
 	}
 
-	resultItem, err := dynamoOperator.GetByHashKey(item.MyHashKey)
+	resultItem, err := dynamoOperator.GetByHashKey(item.MyHashKey, item.MyRangeKey)
 	if err != nil {
 		log.Println("dynamoOperator GetByHashKey error: ", err)
 	}
 	log.Println("resultItem: ", resultItem)
+
+	item.MyText = "Hello, Updated!!!!"
+	err = dynamoOperator.Update(&item)
+	if err != nil {
+		log.Println("dynamoOperator Update error: ", err)
+	}
+
+	err = dynamoOperator.Delete(&item)
+	if err != nil {
+		log.Println("dynamoOperator Delete error: ", err)
+	}
 }
