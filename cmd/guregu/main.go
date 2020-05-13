@@ -101,6 +101,18 @@ func (d *DynamoOperator) Delete(item *Item) error {
 	return nil
 }
 
+func (d *DynamoOperator) DeleteByMyText(hashKey string, rangeKey int, text string) error {
+	err := d.Table.
+		Delete("MyHashKey", hashKey).
+		Range("MyRangeKey", rangeKey).
+		If("MyText = ?", text).
+		Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Item DynamoDB格納用構造体
 type Item struct {
 	MyHashKey  string
